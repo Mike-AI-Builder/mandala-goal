@@ -1,0 +1,19 @@
+{
+  "name": "目標九宮格",
+  "short_name": "目標九宮格",
+  "description": "曼陀羅思考法九宮格目標管理工具",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

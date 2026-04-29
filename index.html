@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="目標九宮格">
+  <meta name="theme-color" content="#0f172a">
+  <title>目標九宮格</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --c0: #FF6B6B;
+      --c1: #FF9F43;
+      --c2: #FFC312;
+      --c3: #0abde3;
+      --c4: #a29bfe;
+      --c5: #1dd1a1;
+      --c6: #fd79a8;
+      --c7: #54a0ff;
+      --gold: #feca57;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #2d3a4a;
+      --text: #e2e8f0;
+      --muted: #475569;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', sans-serif;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      padding-top: env(safe-area-inset-top, 0px);
+      height: calc(52px + env(safe-area-inset-top, 0px));
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .back-btn {
+      position: absolute;
+      left: 16px;
+      bottom: 0;
+      height: 52px;
+      display: none;
+      align-items: center;
+      gap: 4px;
+      color: var(--gold);
+      background: none;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .back-btn.show { display: flex; }
+
+    .back-btn svg { width: 18px; height: 18px; }
+
+    .app-title {
+      font-size: 17px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--gold), #ff9f43);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hint-btn {
+      position: absolute;
+      right: 16px;
+      bottom: 0;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      background: none;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Main ── */
+    .app-main {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Overview ── */
+    .view-overview {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .mandala {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 5px;
+      width: min(calc(100dvw - 20px), calc(100dvh - 72px));
+      aspect-ratio: 1 / 1;
+    }
+
+    .block {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 2px;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      transition: transform 0.12s ease;
+    }
+
+    .block:active { transform: scale(0.95); }
+
+    .mini-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1px;
+      overflow: hidden;
+      font-size: clamp(6px, 1.5vw, 10px);
+      line-height: 1.15;
+      font-weight: 500;
+      color: var(--text);
+      text-align: center;
+      word-break: break-all;
+      background: var(--surface);
+    }
+
+    .mini-cell.dim { color: var(--muted); }
+
+    /* ── Detail View ── */
+    .view-detail {
+      width: 100%;
+      height: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 16px;
+      gap: 10px;
+    }
+
+    .view-detail.show { display: flex; }
+
+    .detail-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 6px;
+      width: min(calc(100dvw - 32px), calc(100dvh - 120px));
+      aspect-ratio: 1 / 1;
+    }
+
+    .detail-cell {
+      background: var(--surface);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8px 6px;
+      font-size: clamp(12px, 3.8vw, 16px);
+      font-weight: 500;
+      line-height: 1.3;
+      cursor: pointer;
+      word-break: break-all;
+      border: 2px solid transparent;
+      transition: transform 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      color: var(--text);
+    }
+
+    .detail-cell:active { transform: scale(0.95); }
+    .detail-cell.dim { color: var(--muted); }
+
+    .detail-cell.is-main {
+      border-color: var(--gold);
+      color: var(--gold);
+      font-weight: 800;
+      font-size: clamp(13px, 4vw, 17px);
+      background: linear-gradient(135deg, #feca5711, #ff9f4311);
+    }
+
+    .detail-cell.is-sub {
+      font-weight: 700;
+      font-size: clamp(13px, 4vw, 17px);
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-sheet {
+      background: #1e293b;
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 640px;
+      padding: 16px 20px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .modal-overlay.show .modal-sheet { transform: translateY(0); }
+
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+
+    .modal-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .modal-sheet textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 16px;
+      padding: 12px 14px;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.5;
+      min-height: 80px;
+    }
+
+    .modal-sheet textarea:focus { border-color: var(--gold); }
+
+    .modal-char-count {
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .modal-char-count.warn { color: #ef4444; }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.1s, transform 0.1s;
+    }
+
+    .btn:active { opacity: 0.8; transform: scale(0.97); }
+    .btn-cancel { background: var(--border); color: var(--text); }
+    .btn-save { background: var(--gold); color: #0f172a; }
+
+    /* ── Help Modal ── */
+    .help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .help-overlay.show { opacity: 1; pointer-events: all; }
+
+    .help-sheet {
+      background: #1e293b;
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 640px;
+      padding: 16px 20px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      max-height: 80dvh;
+      overflow-y: auto;
+    }
+
+    .help-overlay.show .help-sheet { transform: translateY(0); }
+
+    .help-sheet h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    .help-step {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+
+    .help-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #0f172a;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .help-step-text {
+      padding-top: 4px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+    }
+
+    .help-step-text strong { color: var(--gold); }
+
+    .help-close {
+      width: 100%;
+      margin-top: 16px;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      background: var(--gold);
+      color: #0f172a;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <button class="back-btn" id="backBtn" onclick="goBack()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    返回
+  </button>
+  <h1 class="app-title" id="appTitle">目標九宮格</h1>
+  <button class="hint-btn" onclick="showHelp()">使用說明</button>
+</header>
+
+<main class="app-main">
+  <div class="view-overview" id="viewOverview">
+    <div class="mandala" id="mandalaGrid"></div>
+  </div>
+
+  <div class="view-detail" id="viewDetail">
+    <div class="detail-label" id="detailLabel"></div>
+    <div class="detail-grid" id="detailGrid"></div>
+  </div>
+</main>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle"></div>
+    <textarea id="modalInput" rows="3" placeholder="輸入內容..." maxlength="60"></textarea>
+    <div class="modal-char-count" id="charCount">0 / 60</div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn btn-save" onclick="saveModal()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div class="help-overlay" id="helpOverlay" onclick="handleHelpClick(event)">
+  <div class="help-sheet">
+    <h2>曼陀羅思考法</h2>
+    <div class="help-step">
+      <div class="help-step-num">1</div>
+      <div class="help-step-text">點擊<strong>中央區塊</strong>，在九宮格正中心填入你的<strong>主要目標</strong></div>
+    </div>
+    <div class="help-step">
+      <div class="help-step-num">2</div>
+      <div class="help-step-text">在中央區塊的<strong>8個格子</strong>填入達成主目標所需的<strong>8個子目標</strong></div>
+    </div>
+    <div class="help-step">
+      <div class="help-step-num">3</div>
+      <div class="help-step-text">點擊<strong>周圍8個區塊</strong>，每個區塊對應一個子目標，在其8個格子填入具體的<strong>行動方案</strong></div>
+    </div>
+    <div class="help-step">
+      <div class="help-step-num">4</div>
+      <div class="help-step-text">完成後你將擁有完整的目標地圖：1個主目標、8個子目標、64個行動方案</div>
+    </div>
+    <button class="help-close" onclick="closeHelp()">開始使用</button>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────
+
+const COLORS = ['#FF6B6B','#FF9F43','#FFC312','#0abde3','#a29bfe','#1dd1a1','#fd79a8','#54a0ff'];
+const GOLD = '#feca57';
+
+// Block grid (3x3): which sub-goal index lives here (-1 = center)
+const BLOCK_SG = [
+  [0, 1, 2],
+  [3,-1, 4],
+  [5, 6, 7],
+];
+
+// Within any block, the 9 cell positions (row 0-2, col 0-2)
+// cell (1,1) = center cell = -1 (main goal or sub-goal)
+// others = index 0-7 (sub-goals or actions)
+const CELL_IDX = [
+  [0, 1, 2],
+  [3,-1, 4],
+  [5, 6, 7],
+];
+
+// ── Data ──────────────────────────────────────────────────────────────────
+
+const KEY = 'mandala-v2';
+
+let data = (() => {
+  try {
+    const s = localStorage.getItem(KEY);
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return {
+    mainGoal: '',
+    subGoals: Array(8).fill(''),
+    actions: Array(8).fill(null).map(() => Array(8).fill(''))
+  };
+})();
+
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
+
+// ── State ─────────────────────────────────────────────────────────────────
+
+let view = 'overview';
+let detailPos = null; // {br, bc}
+let editCtx = null;
+
+// ── Overview ──────────────────────────────────────────────────────────────
+
+function renderOverview() {
+  const grid = document.getElementById('mandalaGrid');
+  grid.innerHTML = '';
+
+  for (let br = 0; br < 3; br++) {
+    for (let bc = 0; bc < 3; bc++) {
+      const sgIdx = BLOCK_SG[br][bc];
+      const isCenter = sgIdx === -1;
+      const color = isCenter ? GOLD : COLORS[sgIdx];
+
+      const block = document.createElement('div');
+      block.className = 'block';
+      block.onclick = () => openDetail(br, bc);
+
+      for (let cr = 0; cr < 3; cr++) {
+        for (let cc = 0; cc < 3; cc++) {
+          const ci = CELL_IDX[cr][cc];
+          const cell = document.createElement('div');
+          let text = '';
+
+          if (isCenter) {
+            if (ci === -1) {
+              text = data.mainGoal;
+              cell.style.cssText = `background:${GOLD};color:#0f172a;font-weight:800;`;
+            } else {
+              text = data.subGoals[ci];
+              cell.style.cssText = `background:${COLORS[ci]};color:#fff;font-weight:700;`;
+            }
+          } else {
+            if (ci === -1) {
+              text = data.subGoals[sgIdx];
+              cell.style.cssText = `background:${color};color:#fff;font-weight:700;`;
+            } else {
+              text = data.actions[sgIdx][ci];
+              cell.style.cssText = `background:${color}22;color:#e2e8f0;`;
+            }
+          }
+
+          cell.className = 'mini-cell' + (text ? '' : ' dim');
+          if (isCenter && ci === -1 && !text) cell.textContent = '目標';
+          else cell.textContent = text || '';
+          block.appendChild(cell);
+        }
+      }
+
+      grid.appendChild(block);
+    }
+  }
+}
+
+// ── Detail ────────────────────────────────────────────────────────────────
+
+function openDetail(br, bc) {
+  detailPos = { br, bc };
+  view = 'detail';
+
+  const sgIdx = BLOCK_SG[br][bc];
+  const isCenter = sgIdx === -1;
+
+  document.getElementById('backBtn').classList.add('show');
+  document.getElementById('appTitle').textContent = isCenter ? '主目標區塊' : '子目標區塊';
+
+  updateDetailLabel();
+  renderDetail();
+
+  document.getElementById('viewOverview').style.display = 'none';
+  document.getElementById('viewDetail').classList.add('show');
+}
+
+function updateDetailLabel() {
+  const { br, bc } = detailPos;
+  const sgIdx = BLOCK_SG[br][bc];
+  const isCenter = sgIdx === -1;
+  let label = '';
+  if (isCenter) {
+    label = '中心格 = 主目標　　周圍8格 = 子目標';
+  } else {
+    const name = data.subGoals[sgIdx];
+    label = name ? `子目標：${name}` : `子目標 ${sgIdx + 1}　　點擊各格填入行動方案`;
+  }
+  document.getElementById('detailLabel').textContent = label;
+}
+
+function renderDetail() {
+  const { br, bc } = detailPos;
+  const grid = document.getElementById('detailGrid');
+  grid.innerHTML = '';
+
+  const sgIdx = BLOCK_SG[br][bc];
+  const isCenter = sgIdx === -1;
+  const color = isCenter ? GOLD : COLORS[sgIdx];
+
+  for (let cr = 0; cr < 3; cr++) {
+    for (let cc = 0; cc < 3; cc++) {
+      const ci = CELL_IDX[cr][cc];
+      const cell = document.createElement('div');
+      let text = '', label = '', isMain = false, isSub = false;
+
+      if (isCenter) {
+        if (ci === -1) {
+          text = data.mainGoal;
+          label = '主要目標';
+          isMain = true;
+          cell.style.cssText = `border-color:${GOLD};color:${GOLD};background:${GOLD}11;`;
+        } else {
+          text = data.subGoals[ci];
+          label = `子目標 ${ci + 1}`;
+          isSub = true;
+          cell.style.cssText = `border-color:${COLORS[ci]};color:${COLORS[ci]};background:${COLORS[ci]}22;`;
+        }
+      } else {
+        if (ci === -1) {
+          text = data.subGoals[sgIdx];
+          label = '子目標';
+          isSub = true;
+          cell.style.cssText = `border-color:${color};color:${color};background:${color}22;`;
+        } else {
+          text = data.actions[sgIdx][ci];
+          label = `行動 ${ci + 1}`;
+        }
+      }
+
+      cell.className = 'detail-cell' + (isMain ? ' is-main' : isSub ? ' is-sub' : '') + (text ? '' : ' dim');
+      cell.textContent = text || (isMain ? '點擊設定主目標' : isSub ? '點擊設定子目標' : `行動 ${ci + 1}`);
+      cell.onclick = () => openModal(br, bc, cr, cc, label, text);
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function goBack() {
+  view = 'overview';
+  detailPos = null;
+  document.getElementById('backBtn').classList.remove('show');
+  document.getElementById('appTitle').textContent = '目標九宮格';
+  document.getElementById('viewDetail').classList.remove('show');
+  document.getElementById('viewOverview').style.display = '';
+  renderOverview();
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+
+function openModal(br, bc, cr, cc, label, current) {
+  const sgIdx = BLOCK_SG[br][bc];
+  const isCenter = sgIdx === -1;
+  const ci = CELL_IDX[cr][cc];
+
+  if (isCenter) {
+    if (ci === -1) editCtx = { type: 'main' };
+    else editCtx = { type: 'sub', sgIdx: ci };
+  } else {
+    if (ci === -1) editCtx = { type: 'sub', sgIdx };
+    else editCtx = { type: 'action', sgIdx, ai: ci };
+  }
+
+  document.getElementById('modalTitle').textContent = label;
+  const inp = document.getElementById('modalInput');
+  inp.value = current || '';
+  updateCharCount();
+
+  document.getElementById('modalOverlay').classList.add('show');
+  setTimeout(() => {
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+  }, 320);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  document.getElementById('modalInput').blur();
+  editCtx = null;
+}
+
+function saveModal() {
+  if (!editCtx) return;
+  const val = document.getElementById('modalInput').value.trim();
+
+  if (editCtx.type === 'main') data.mainGoal = val;
+  else if (editCtx.type === 'sub') data.subGoals[editCtx.sgIdx] = val;
+  else data.actions[editCtx.sgIdx][editCtx.ai] = val;
+
+  save();
+  closeModal();
+  if (view === 'detail' && detailPos) {
+    renderDetail();
+    updateDetailLabel();
+  }
+}
+
+function handleOverlayClick(e) {
+  if (e.target === e.currentTarget) closeModal();
+}
+
+function updateCharCount() {
+  const inp = document.getElementById('modalInput');
+  const len = inp.value.length;
+  const el = document.getElementById('charCount');
+  el.textContent = `${len} / 60`;
+  el.className = 'modal-char-count' + (len > 50 ? ' warn' : '');
+}
+
+document.getElementById('modalInput').addEventListener('input', updateCharCount);
+document.getElementById('modalInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveModal(); }
+});
+
+// ── Help ──────────────────────────────────────────────────────────────────
+
+function showHelp() {
+  document.getElementById('helpOverlay').classList.add('show');
+}
+
+function closeHelp() {
+  document.getElementById('helpOverlay').classList.remove('show');
+}
+
+function handleHelpClick(e) {
+  if (e.target === e.currentTarget) closeHelp();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+
+renderOverview();
+
+// Show help on first launch
+if (!localStorage.getItem('mandala-launched')) {
+  localStorage.setItem('mandala-launched', '1');
+  setTimeout(showHelp, 400);
+}
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
