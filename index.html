@@ -410,6 +410,139 @@
       cursor: pointer;
       font-family: inherit;
     }
+
+    /* ── Export FAB ── */
+    .fab {
+      position: fixed;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      right: 20px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), #ff9f43);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(254,202,87,0.45);
+      z-index: 50;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .fab:active { transform: scale(0.92); box-shadow: 0 2px 10px rgba(254,202,87,0.3); }
+    .fab svg { width: 22px; height: 22px; color: #0f172a; }
+
+    /* ── Export Sheet ── */
+    .export-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 400;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .export-overlay.show { opacity: 1; pointer-events: all; }
+
+    .export-sheet {
+      background: #1e293b;
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-width: 640px;
+      padding: 16px 20px;
+      padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+      max-height: 88dvh;
+      overflow-y: auto;
+    }
+    .export-overlay.show .export-sheet { transform: translateY(0); }
+
+    .export-sheet h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .export-sheet p {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .theme-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .theme-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--bg);
+      border-radius: 14px;
+      padding: 12px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .theme-card:active { transform: scale(0.98); }
+    .theme-card.selected { border-color: var(--gold); }
+
+    .theme-preview {
+      width: 52px;
+      height: 88px;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .theme-preview canvas { width: 100%; height: 100%; display: block; }
+
+    .theme-info { flex: 1; }
+    .theme-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .theme-desc { font-size: 12px; color: var(--muted); }
+
+    .theme-dl-btn {
+      background: var(--border);
+      color: var(--text);
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s;
+    }
+    .theme-card.selected .theme-dl-btn {
+      background: var(--gold);
+      color: #0f172a;
+    }
+    .theme-dl-btn:active { opacity: 0.8; }
+
+    .export-close {
+      width: 100%;
+      margin-top: 14px;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      background: var(--border);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
   </style>
 </head>
 <body>
@@ -447,6 +580,26 @@
       <button class="btn btn-cancel" onclick="closeModal()">取消</button>
       <button class="btn btn-save" onclick="saveModal()">儲存</button>
     </div>
+  </div>
+</div>
+
+<!-- Export FAB -->
+<button class="fab" onclick="showExport()" title="匯出桌布">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+</button>
+
+<!-- Export Sheet -->
+<div class="export-overlay" id="exportOverlay" onclick="handleExportOverlayClick(event)">
+  <div class="export-sheet">
+    <div class="modal-handle"></div>
+    <h2>匯出手機桌布</h2>
+    <p>選擇風格，下載 1080 × 1920 高清桌布</p>
+    <div class="theme-list" id="themeList"></div>
+    <button class="export-close" onclick="closeExport()">關閉</button>
   </div>
 </div>
 
@@ -742,6 +895,481 @@ function closeHelp() {
 
 function handleHelpClick(e) {
   if (e.target === e.currentTarget) closeHelp();
+}
+
+// ── Export / Wallpaper ────────────────────────────────────────────────────
+
+const THEMES = [
+  { id: 'neon',   name: '霓虹深夜', desc: '暗夜螢光・色彩躍動' },
+  { id: 'gold',   name: '黃金典藏', desc: '奢華金線・沉穩大氣' },
+  { id: 'aurora', name: '極光夢境', desc: '夢幻漸層・絢爛星空' },
+  { id: 'flame',  name: '熔岩鬥志', desc: '烈火橙紅・燃燒意志' },
+  { id: 'cosmos', name: '星辰大海', desc: '宇宙深邃・繁星璀璨' },
+];
+
+const WW = 1080, WH = 1920;
+
+// Seeded RNG for consistent star patterns
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+// Rounded rect helper
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+// Draw text with auto font-size reduction and 2-line wrap
+function cellText(ctx, text, cx, cy, maxW, maxH, baseFontSize, color) {
+  if (!text) return;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  let fs = baseFontSize;
+  const font = w => `700 ${w}px system-ui,"PingFang TC","Microsoft JhengHei",sans-serif`;
+  ctx.font = font(fs);
+  // Shrink to fit width
+  while (fs > baseFontSize * 0.5 && ctx.measureText(text).width > maxW - 6) {
+    fs -= 2; ctx.font = font(fs);
+  }
+  // Wrap if still too wide
+  if (ctx.measureText(text).width > maxW - 6 && text.length > 2) {
+    const mid = Math.ceil(text.length / 2);
+    const l1 = text.slice(0, mid), l2 = text.slice(mid);
+    const lh = fs * 1.25;
+    ctx.fillText(l1, cx, cy - lh / 2);
+    ctx.fillText(l2, cx, cy + lh / 2);
+  } else {
+    ctx.fillText(text, cx, cy);
+  }
+  ctx.restore();
+}
+
+// Core grid drawing — theme drives colors/effects
+function drawMandalaGrid(ctx, gx, gy, gs, theme) {
+  const BG = Math.round(gs * 0.009);   // block gap ~8px
+  const BS = (gs - 2 * BG) / 3;        // block size ~354px
+  const CG = Math.round(gs * 0.0033);  // cell gap ~3px
+  const CS = (BS - 2 * CG) / 3;        // cell size ~116px
+  const BCR = Math.round(BS * 0.055);  // block corner radius
+  const CCR = Math.round(CS * 0.11);   // cell corner radius
+  const fs = Math.round(CS * 0.19);    // base font size
+
+  for (let br = 0; br < 3; br++) {
+    for (let bc = 0; bc < 3; bc++) {
+      const bx = gx + bc * (BS + BG);
+      const by = gy + br * (BS + BG);
+      const sgIdx = BLOCK_SG[br][bc];
+      const isCenter = sgIdx === -1;
+
+      // Optional block bg
+      if (theme.blockBg) {
+        ctx.save();
+        rr(ctx, bx, by, BS, BS, BCR);
+        ctx.fillStyle = theme.blockBg(isCenter, sgIdx);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      for (let cr = 0; cr < 3; cr++) {
+        for (let cc = 0; cc < 3; cc++) {
+          const ci = CELL_IDX[cr][cc];
+          const cx = bx + cc * (CS + CG);
+          const cy = by + cr * (CS + CG);
+
+          let fillColor, text, textColor;
+
+          if (isCenter) {
+            if (ci === -1) {
+              fillColor = theme.mainColor;
+              text = data.mainGoal || '主要目標';
+              textColor = theme.mainTextColor;
+            } else {
+              fillColor = theme.subColor(ci);
+              text = data.subGoals[ci] || `子目標${ci+1}`;
+              textColor = theme.subTextColor;
+            }
+          } else {
+            if (ci === -1) {
+              fillColor = theme.subColor(sgIdx);
+              text = data.subGoals[sgIdx] || `子目標${sgIdx+1}`;
+              textColor = theme.subTextColor;
+            } else {
+              fillColor = theme.actionColor(sgIdx);
+              text = data.actions[sgIdx][ci];
+              textColor = theme.actionTextColor(sgIdx);
+            }
+          }
+
+          ctx.save();
+          if (theme.glow && (ci === -1 || isCenter)) {
+            ctx.shadowColor = fillColor;
+            ctx.shadowBlur = theme.glow;
+          }
+          rr(ctx, cx, cy, CS, CS, CCR);
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+          ctx.restore();
+
+          cellText(ctx, text, cx + CS/2, cy + CS/2, CS, CS, fs, textColor);
+        }
+      }
+    }
+  }
+}
+
+// ── Theme definitions ─────────────────────────────────────────────────────
+
+function themeNeon() {
+  return {
+    glow: 18,
+    mainColor: '#feca57',
+    mainTextColor: '#0f172a',
+    subColor: i => COLORS[i],
+    subTextColor: '#fff',
+    actionColor: i => COLORS[i] + '18',
+    actionTextColor: i => COLORS[i] + 'cc',
+    blockBg: null,
+    bg(ctx, W, H) {
+      ctx.fillStyle = '#030310';
+      ctx.fillRect(0, 0, W, H);
+      // dot grid
+      ctx.fillStyle = 'rgba(255,255,255,0.025)';
+      const sp = 36;
+      for (let x = sp; x < W; x += sp)
+        for (let y = sp; y < H; y += sp) {
+          ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI*2); ctx.fill();
+        }
+      // scan lines
+      for (let y = 0; y < H; y += 4) {
+        ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        ctx.fillRect(0, y, W, 2);
+      }
+    },
+    titleColor: '#feca57',
+    accentColor: '#feca57',
+  };
+}
+
+function themeGold() {
+  return {
+    glow: 0,
+    mainColor: '#D4AF37',
+    mainTextColor: '#0a0818',
+    subColor: i => '#1a1430',
+    subTextColor: '#D4AF37',
+    actionColor: i => '#0d0b1a',
+    actionTextColor: i => '#8a7a50',
+    blockBg: (isCenter, sg) => isCenter ? '#1a1430' : '#0d0b1a',
+    bg(ctx, W, H) {
+      ctx.fillStyle = '#080614';
+      ctx.fillRect(0, 0, W, H);
+      // subtle radial glow
+      const g = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, H*0.7);
+      g.addColorStop(0, 'rgba(212,175,55,0.07)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      // thin horizontal lines
+      ctx.strokeStyle = 'rgba(212,175,55,0.06)';
+      ctx.lineWidth = 1;
+      for (let y = 0; y < H; y += 48) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+    },
+    titleColor: '#D4AF37',
+    accentColor: '#D4AF37',
+    postDraw(ctx, W, H, gx, gy, gs) {
+      // Draw gold borders on all blocks
+      const BG = Math.round(gs*0.009), BS = (gs-2*BG)/3;
+      const CG = Math.round(gs*0.0033), CS = (BS-2*CG)/3;
+      const CCR = Math.round(CS*0.11);
+      ctx.strokeStyle = '#D4AF37';
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.5;
+      for (let br = 0; br < 3; br++)
+        for (let bc = 0; bc < 3; bc++) {
+          const bx = gx + bc*(BS+BG), by = gy + br*(BS+BG);
+          for (let cr = 0; cr < 3; cr++)
+            for (let cc = 0; cc < 3; cc++) {
+              rr(ctx, bx+cc*(CS+CG), by+cr*(CS+CG), CS, CS, CCR);
+              ctx.stroke();
+            }
+        }
+      ctx.globalAlpha = 1;
+    }
+  };
+}
+
+function themeAurora() {
+  const ACOLS = ['#6c5ce7','#00cec9','#0984e3','#fd79a8','#55efc4','#a29bfe','#fdcb6e','#e17055'];
+  return {
+    glow: 0,
+    mainColor: 'rgba(255,255,255,0.25)',
+    mainTextColor: '#fff',
+    subColor: i => ACOLS[i] + '99',
+    subTextColor: '#fff',
+    actionColor: i => 'rgba(255,255,255,0.07)',
+    actionTextColor: i => ACOLS[i] + 'dd',
+    blockBg: null,
+    bg(ctx, W, H) {
+      ctx.fillStyle = '#060d1a';
+      ctx.fillRect(0, 0, W, H);
+      // Aurora bands
+      const bands = [
+        { y: H*0.05, c1:'rgba(108,92,231,0.55)', c2:'rgba(0,206,201,0.3)', angle: 0.15 },
+        { y: H*0.25, c1:'rgba(0,206,201,0.35)', c2:'rgba(9,132,227,0.25)', angle: -0.1 },
+        { y: H*0.45, c1:'rgba(253,121,168,0.25)', c2:'rgba(108,92,231,0.3)', angle: 0.08 },
+      ];
+      bands.forEach(b => {
+        ctx.save();
+        ctx.translate(W/2, b.y);
+        ctx.rotate(b.angle);
+        const g = ctx.createLinearGradient(-W, 0, W, H*0.3);
+        g.addColorStop(0, 'transparent');
+        g.addColorStop(0.3, b.c1);
+        g.addColorStop(0.7, b.c2);
+        g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g;
+        ctx.fillRect(-W, 0, W*2, H*0.35);
+        ctx.restore();
+      });
+      // Stars
+      const rng = makeRng(42);
+      for (let i = 0; i < 200; i++) {
+        const x = rng()*W, y = rng()*H, r = rng()*1.2+0.3;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,255,255,${rng()*0.6+0.2})`; ctx.fill();
+      }
+    },
+    titleColor: '#a29bfe',
+    accentColor: '#55efc4',
+  };
+}
+
+function themeFlame() {
+  const FCOLS = ['#e17055','#d63031','#fdcb6e','#e67e22','#c0392b','#f39c12','#e74c3c','#fd7f5b'];
+  return {
+    glow: 14,
+    mainColor: '#f39c12',
+    mainTextColor: '#0d0000',
+    subColor: i => FCOLS[i],
+    subTextColor: '#fff',
+    actionColor: i => FCOLS[i] + '22',
+    actionTextColor: i => FCOLS[i] + 'ee',
+    blockBg: null,
+    bg(ctx, W, H) {
+      ctx.fillStyle = '#080000';
+      ctx.fillRect(0, 0, W, H);
+      // Radial heat glow from center
+      const g = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, H*0.65);
+      g.addColorStop(0,   'rgba(230,100,0,0.22)');
+      g.addColorStop(0.4, 'rgba(180,30,0,0.12)');
+      g.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      // Radial lines
+      ctx.save();
+      ctx.translate(W/2, H/2);
+      ctx.strokeStyle = 'rgba(230,80,0,0.06)';
+      ctx.lineWidth = 1;
+      for (let a = 0; a < Math.PI*2; a += Math.PI/18) {
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*H, Math.sin(a)*H); ctx.stroke();
+      }
+      ctx.restore();
+    },
+    titleColor: '#f39c12',
+    accentColor: '#e17055',
+  };
+}
+
+function themeCosmos() {
+  const SCOLS = ['#74b9ff','#a29bfe','#55efc4','#81ecec','#b2bec3','#dfe6e9','#fdcb6e','#fd79a8'];
+  return {
+    glow: 8,
+    mainColor: 'rgba(255,255,255,0.15)',
+    mainTextColor: '#fff',
+    subColor: i => SCOLS[i] + 'bb',
+    subTextColor: '#fff',
+    actionColor: i => 'rgba(30,50,80,0.7)',
+    actionTextColor: i => SCOLS[i] + 'cc',
+    blockBg: null,
+    bg(ctx, W, H) {
+      ctx.fillStyle = '#010308';
+      ctx.fillRect(0, 0, W, H);
+      // Nebula
+      const ng = ctx.createRadialGradient(W*0.3, H*0.3, 0, W*0.3, H*0.3, W*0.6);
+      ng.addColorStop(0, 'rgba(100,60,200,0.18)');
+      ng.addColorStop(1, 'transparent');
+      ctx.fillStyle = ng; ctx.fillRect(0,0,W,H);
+      const ng2 = ctx.createRadialGradient(W*0.7, H*0.65, 0, W*0.7, H*0.65, W*0.5);
+      ng2.addColorStop(0, 'rgba(0,150,200,0.12)');
+      ng2.addColorStop(1, 'transparent');
+      ctx.fillStyle = ng2; ctx.fillRect(0,0,W,H);
+      // Stars
+      const rng = makeRng(99);
+      for (let i = 0; i < 350; i++) {
+        const x = rng()*W, y = rng()*H;
+        const r = rng()*1.6+0.2;
+        const op = rng()*0.7+0.25;
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fillStyle = `rgba(255,255,255,${op})`; ctx.fill();
+      }
+      // A few bright stars with glow
+      const rng2 = makeRng(7);
+      for (let i = 0; i < 12; i++) {
+        const x = rng2()*W, y = rng2()*H, r = rng2()*2+1.5;
+        ctx.save();
+        ctx.shadowColor = 'white'; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill();
+        ctx.restore();
+      }
+    },
+    titleColor: '#a29bfe',
+    accentColor: '#55efc4',
+  };
+}
+
+const THEME_FNS = { neon: themeNeon, gold: themeGold, aurora: themeAurora, flame: themeFlame, cosmos: themeCosmos };
+
+// ── Wallpaper renderer ────────────────────────────────────────────────────
+
+function renderWallpaper(themeId, W, H) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const theme = THEME_FNS[themeId]();
+
+  // Background
+  theme.bg(ctx, W, H);
+
+  // Grid layout
+  const GS = Math.round(W * 0.87);   // grid size
+  const GX = Math.round((W - GS) / 2);
+  const GY = Math.round(H * 0.185);
+
+  // Title area
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // App name
+  ctx.fillStyle = theme.titleColor;
+  ctx.font = `800 ${Math.round(W*0.062)}px system-ui,"PingFang TC",sans-serif`;
+  ctx.fillText('目標九宮格', W/2, Math.round(H*0.072));
+  // Main goal subtitle
+  const mg = data.mainGoal;
+  if (mg) {
+    ctx.fillStyle = theme.accentColor || theme.titleColor;
+    ctx.globalAlpha = 0.85;
+    ctx.font = `600 ${Math.round(W*0.038)}px system-ui,"PingFang TC",sans-serif`;
+    ctx.fillText(mg, W/2, Math.round(H*0.125));
+    ctx.globalAlpha = 1;
+  }
+  // Divider
+  ctx.strokeStyle = theme.titleColor;
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(GX, Math.round(H*0.155));
+  ctx.lineTo(GX + GS, Math.round(H*0.155));
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Mandala grid
+  drawMandalaGrid(ctx, GX, GY, GS, theme);
+
+  // Post-draw hook (e.g. gold borders)
+  if (theme.postDraw) theme.postDraw(ctx, W, H, GX, GY, GS);
+
+  // Footer
+  const footerY = GY + GS + Math.round(H * 0.025);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = theme.titleColor;
+  ctx.globalAlpha = 0.3;
+  ctx.font = `500 ${Math.round(W*0.028)}px system-ui,"PingFang TC",sans-serif`;
+  ctx.fillText('曼陀羅思考法  ·  1主目標 · 8子目標 · 64行動', W/2, footerY);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  return canvas;
+}
+
+// ── Export UI ─────────────────────────────────────────────────────────────
+
+function showExport() {
+  // Build theme cards with previews
+  const list = document.getElementById('themeList');
+  list.innerHTML = '';
+  THEMES.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'theme-card';
+    card.id = `tc-${t.id}`;
+
+    // Thumbnail canvas (52×88)
+    const preview = document.createElement('div');
+    preview.className = 'theme-preview';
+    const thumbCanvas = renderWallpaper(t.id, 260, 440);
+    thumbCanvas.style.cssText = 'width:100%;height:100%;display:block;';
+    preview.appendChild(thumbCanvas);
+
+    const info = document.createElement('div');
+    info.className = 'theme-info';
+    info.innerHTML = `<div class="theme-name">${t.name}</div><div class="theme-desc">${t.desc}</div>`;
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'theme-dl-btn';
+    dlBtn.textContent = '下載';
+    dlBtn.onclick = (e) => {
+      e.stopPropagation();
+      downloadWallpaper(t.id);
+    };
+
+    card.onclick = () => {
+      document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    };
+
+    card.append(preview, info, dlBtn);
+    list.appendChild(card);
+  });
+
+  document.getElementById('exportOverlay').classList.add('show');
+}
+
+function closeExport() {
+  document.getElementById('exportOverlay').classList.remove('show');
+}
+
+function handleExportOverlayClick(e) {
+  if (e.target === e.currentTarget) closeExport();
+}
+
+function downloadWallpaper(themeId) {
+  const dlBtn = document.querySelector(`#tc-${themeId} .theme-dl-btn`);
+  if (dlBtn) { dlBtn.textContent = '生成中…'; dlBtn.disabled = true; }
+
+  // Defer to let UI update
+  setTimeout(() => {
+    const canvas = renderWallpaper(themeId, WW, WH);
+    const link = document.createElement('a');
+    const theme = THEMES.find(t => t.id === themeId);
+    link.download = `目標九宮格_${theme.name}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    if (dlBtn) { dlBtn.textContent = '下載'; dlBtn.disabled = false; }
+  }, 50);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
