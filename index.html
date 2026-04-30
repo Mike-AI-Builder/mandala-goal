@@ -74,13 +74,22 @@
       background-clip: text;
     }
 
-    .hint-btn {
+    .header-right {
       position: absolute; right: 16px; bottom: 0; height: 52px;
-      display: flex; align-items: center;
-      color: var(--muted); background: none; border: none;
-      font-size: 13px; cursor: pointer; font-family: inherit;
-      -webkit-tap-highlight-color: transparent;
+      display: flex; align-items: center; gap: 6px;
     }
+
+    .hdr-btn {
+      display: flex; align-items: center; justify-content: center;
+      height: 30px; padding: 0 11px; border-radius: 15px;
+      border: 1.5px solid var(--border); background: none;
+      color: var(--muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .hdr-btn:active { opacity: 0.7; }
+    .hdr-btn.accent { border-color: var(--gold); color: var(--gold); }
 
     /* ── Main ── */
     .app-main { flex: 1; overflow: hidden; position: relative; }
@@ -393,7 +402,10 @@
     返回
   </button>
   <h1 class="app-title" id="appTitle">目標九宮格</h1>
-  <button class="hint-btn" onclick="showHelp()">使用說明</button>
+  <div class="header-right">
+    <button class="hdr-btn accent" onclick="showExampleConfirm()">範例</button>
+    <button class="hdr-btn" onclick="showHelp()">說明</button>
+  </div>
 </header>
 
 <main class="app-main">
@@ -450,6 +462,31 @@
   </div>
 </div>
 
+<!-- Example Confirm Sheet -->
+<div class="help-overlay" id="exampleOverlay" onclick="handleExampleOverlayClick(event)">
+  <div class="help-sheet">
+    <div class="modal-handle"></div>
+    <h2>載入大谷翔平範例</h2>
+    <div class="help-step">
+      <div class="help-step-num" style="background:#06b6d4">大</div>
+      <div class="help-step-text">
+        這是棒球傳奇 <strong>大谷翔平</strong> 高中時親手填寫的曼陀羅目標圖。<br>
+        主目標：<strong>獲得八大球團第一指名</strong>，展開逐夢之路。
+      </div>
+    </div>
+    <div class="help-step">
+      <div class="help-step-num" style="background:#ef4444">!</div>
+      <div class="help-step-text" style="color:#ef4444">
+        載入後將覆蓋你目前的資料，此操作無法復原。
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:8px">
+      <button class="btn btn-cancel" onclick="closeExampleConfirm()">取消</button>
+      <button class="btn btn-save" style="background:#06b6d4" onclick="confirmLoadExample()">載入範例</button>
+    </div>
+  </div>
+</div>
+
 <!-- Help Modal -->
 <div class="help-overlay" id="helpOverlay" onclick="handleHelpClick(event)">
   <div class="help-sheet">
@@ -490,6 +527,31 @@ const CELL_IDX = [
   [3,-1, 4],
   [5, 6, 7],
 ];
+
+// ── Ohtani Example ────────────────────────────────────────────────────────
+
+const OHTANI_EXAMPLE = {
+  mainGoal: '獲得八大球團第一指名',
+  subGoals: ['體力','控球','球質','心志','球速160公里','人品','運氣','變化球'],
+  actions: [
+    // 0 體力
+    ['身體保養','吃營養品','FSQ90公斤','柔軟性','RSQ130公斤','鍛鍊體格','早三碗晚七碗','擴展可動範圍'],
+    // 1 控球
+    ['改善跑步','強化軀幹','保持軸心不晃動','穩定放球點','消除不安感','身體不要開掉','控制心理狀況','放球點往前'],
+    // 2 球質
+    ['製造角度','球從上往下壓','強化手腕','不過度用力','用下半身主導','順著軸心旋轉','提高球的轉速','強化下半身'],
+    // 3 心志
+    ['設立明確目標','不怠惰不忽喜忽憂','頭腦冷靜內心熱','加強危機應變','不受氣氛影響','情緒不起伏不定','對勝利執著','體諒隊友'],
+    // 4 球速160公里
+    ['順著軸心旋轉','強化下半身','增加體重','強化軀幹','強化肩膀力道','練習傳接直球','改善投球步法','增加投球深度'],
+    // 5 人品
+    ['威性','成為受大家喜愛的人','計劃性','體貼','感謝','禮節','成為受大家信任的人','持之以恆'],
+    // 6 運氣
+    ['打招呼','撿垃圾','打掃房間','珍惜球具','對裁判的態度','正面思考','成為受大家喜歡的人','閱讀書籍'],
+    // 7 變化球
+    ['增加好球帶球種','完成指叉球','滑球球質','經常製造落差','左打者決勝球','以直球姿勢投球','好壞球區掌控','想像球的控力'],
+  ]
+};
 
 // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -673,6 +735,22 @@ document.getElementById('modalInput').addEventListener('keydown', e => {
 function showHelp() { document.getElementById('helpOverlay').classList.add('show'); }
 function closeHelp() { document.getElementById('helpOverlay').classList.remove('show'); }
 function handleHelpClick(e) { if (e.target === e.currentTarget) closeHelp(); }
+
+// ── Example ───────────────────────────────────────────────────────────────
+
+function showExampleConfirm() { document.getElementById('exampleOverlay').classList.add('show'); }
+function closeExampleConfirm() { document.getElementById('exampleOverlay').classList.remove('show'); }
+function handleExampleOverlayClick(e) { if (e.target === e.currentTarget) closeExampleConfirm(); }
+
+function confirmLoadExample() {
+  data.mainGoal = OHTANI_EXAMPLE.mainGoal;
+  data.subGoals = [...OHTANI_EXAMPLE.subGoals];
+  data.actions = OHTANI_EXAMPLE.actions.map(a => [...a]);
+  save();
+  closeExampleConfirm();
+  if (view === 'detail' && detailPos) { renderDetail(); updateDetailLabel(); }
+  renderOverview();
+}
 
 // ── Wallpaper / Canvas ────────────────────────────────────────────────────
 
@@ -1088,12 +1166,6 @@ function closeSavePreview() {
   document.getElementById('saveOverlay').classList.remove('show');
   _pendingBlob = null; _pendingFilename = '';
 }
-
-// ── Help ──────────────────────────────────────────────────────────────────
-
-function showHelp() { document.getElementById('helpOverlay').classList.add('show'); }
-function closeHelp() { document.getElementById('helpOverlay').classList.remove('show'); }
-function handleHelpClick(e) { if (e.target === e.currentTarget) closeHelp(); }
 
 // ── Init ──────────────────────────────────────────────────────────────────
 
