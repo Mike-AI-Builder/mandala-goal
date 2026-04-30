@@ -90,6 +90,7 @@
     }
     .hdr-btn:active { opacity: 0.7; }
     .hdr-btn.accent { border-color: var(--gold); color: var(--gold); }
+    .hdr-btn.danger { border-color: #fca5a5; color: #ef4444; }
 
     /* ── Main ── */
     .app-main { flex: 1; overflow: hidden; position: relative; }
@@ -404,6 +405,7 @@
   <h1 class="app-title" id="appTitle">目標九宮格</h1>
   <div class="header-right">
     <button class="hdr-btn accent" onclick="showExampleConfirm()">範例</button>
+    <button class="hdr-btn danger" onclick="showClearConfirm()">清除</button>
     <button class="hdr-btn" onclick="showHelp()">說明</button>
   </div>
 </header>
@@ -459,6 +461,24 @@
   <div class="save-actions">
     <button class="save-btn save-btn-secondary" onclick="closeSavePreview()">關閉</button>
     <button class="save-btn save-btn-primary" id="saveActBtn" onclick="doSave()">儲存到相簿</button>
+  </div>
+</div>
+
+<!-- Clear Confirm Sheet -->
+<div class="help-overlay" id="clearOverlay" onclick="handleClearOverlayClick(event)">
+  <div class="help-sheet">
+    <div class="modal-handle"></div>
+    <h2 style="color:#ef4444">清除九宮格</h2>
+    <div class="help-step">
+      <div class="help-step-num" style="background:#ef4444">!</div>
+      <div class="help-step-text" style="color:#ef4444">
+        將清除所有內容，包含主目標、子目標與 64 個行動方案。<br>此操作無法復原。
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:8px">
+      <button class="btn btn-cancel" onclick="closeClearConfirm()">取消</button>
+      <button class="btn btn-save" style="background:#ef4444" onclick="confirmClear()">確認清除</button>
+    </div>
   </div>
 </div>
 
@@ -735,6 +755,22 @@ document.getElementById('modalInput').addEventListener('keydown', e => {
 function showHelp() { document.getElementById('helpOverlay').classList.add('show'); }
 function closeHelp() { document.getElementById('helpOverlay').classList.remove('show'); }
 function handleHelpClick(e) { if (e.target === e.currentTarget) closeHelp(); }
+
+// ── Clear ─────────────────────────────────────────────────────────────────
+
+function showClearConfirm() { document.getElementById('clearOverlay').classList.add('show'); }
+function closeClearConfirm() { document.getElementById('clearOverlay').classList.remove('show'); }
+function handleClearOverlayClick(e) { if (e.target === e.currentTarget) closeClearConfirm(); }
+
+function confirmClear() {
+  data.mainGoal = '';
+  data.subGoals = Array(8).fill('');
+  data.actions = Array(8).fill(null).map(() => Array(8).fill(''));
+  save();
+  closeClearConfirm();
+  if (view === 'detail') goBack();
+  else renderOverview();
+}
 
 // ── Example ───────────────────────────────────────────────────────────────
 
