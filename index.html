@@ -6,15 +6,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="目標九宮格">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#f0f4f8">
   <title>目標九宮格</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* 確保狀態列區域與 header 同色，不漏出背景 */
-    html { background: #ffffff; }
+    /* 狀態列區域與 body 同色，整體一致 */
+    html { background: #f0f4f8; }
 
     :root {
       --c0: #ef4444; --c1: #f97316; --c2: #f59e0b;
@@ -51,7 +51,7 @@
       padding: 0 12px;
       padding-top: env(safe-area-inset-top, 0px);
       height: calc(52px + env(safe-area-inset-top, 0px));
-      background: #ffffff;
+      background: transparent;
       z-index: 10;
     }
 
