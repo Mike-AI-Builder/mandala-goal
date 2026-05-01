@@ -13,6 +13,9 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* 確保狀態列區域與 header 同色，不漏出背景 */
+    html { background: #ffffff; }
+
     :root {
       --c0: #ef4444; --c1: #f97316; --c2: #f59e0b;
       --c3: #06b6d4; --c4: #8b5cf6; --c5: #10b981;
@@ -48,10 +51,8 @@
       padding: 0 12px;
       padding-top: env(safe-area-inset-top, 0px);
       height: calc(52px + env(safe-area-inset-top, 0px));
-      background: rgba(255,255,255,0.9);
-      border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: #ffffff;
+      box-shadow: 0 1px 0 var(--border);
       z-index: 10;
     }
 
