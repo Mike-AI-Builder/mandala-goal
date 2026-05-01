@@ -81,19 +81,54 @@
       display: flex; align-items: center; justify-content: flex-end; gap: 5px;
     }
 
-    .hdr-btn {
+    .menu-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: none; background: transparent;
       display: flex; align-items: center; justify-content: center;
-      height: 28px; padding: 0 10px; border-radius: 14px;
-      border: 1.5px solid var(--border); background: none;
-      color: var(--muted); font-size: 12px; font-weight: 600;
-      cursor: pointer; font-family: inherit;
+      cursor: pointer; color: var(--text);
       -webkit-tap-highlight-color: transparent;
-      transition: border-color 0.15s, color 0.15s;
-      white-space: nowrap;
+      transition: background 0.15s;
     }
-    .hdr-btn:active { opacity: 0.7; }
-    .hdr-btn.accent { border-color: var(--gold); color: var(--gold); }
-    .hdr-btn.danger { border-color: #fca5a5; color: #ef4444; }
+    .menu-btn:active { background: rgba(0,0,0,0.06); }
+    .menu-btn svg { width: 22px; height: 22px; }
+
+    /* ── Menu Sheet ── */
+    .menu-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 250; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .menu-overlay.show { opacity: 1; pointer-events: all; }
+    .menu-sheet {
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 640px;
+      padding: 8px 12px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      box-shadow: 0 -4px 32px rgba(0,0,20,0.12);
+    }
+    .menu-overlay.show .menu-sheet { transform: translateY(0); }
+    .menu-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 12px; border-radius: 12px;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: background 0.12s;
+      font-size: 16px; font-weight: 600; color: var(--text);
+    }
+    .menu-item:active { background: var(--bg); }
+    .menu-item.danger { color: #ef4444; }
+    .menu-item.accent { color: var(--gold); }
+    .menu-item-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .menu-item-icon svg { width: 20px; height: 20px; }
+    .menu-item.danger .menu-item-icon { background: #fee2e2; color: #ef4444; }
+    .menu-item.accent .menu-item-icon { background: #fef3c7; color: var(--gold); }
+    .menu-item.normal .menu-item-icon { color: var(--muted); }
 
     /* ── Main ── */
     .app-main { flex: 1; overflow: hidden; position: relative; }
@@ -442,9 +477,13 @@
   </div>
   <h1 class="app-title" id="appTitle">目標九宮格</h1>
   <div class="header-right">
-    <button class="hdr-btn accent" onclick="showExampleConfirm()">範例</button>
-    <button class="hdr-btn danger" onclick="showClearConfirm()">清除</button>
-    <button class="hdr-btn" onclick="showHelp()">說明</button>
+    <button class="menu-btn" onclick="showMenu()" aria-label="選單">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="5" cy="12" r="2"/>
+        <circle cx="12" cy="12" r="2"/>
+        <circle cx="19" cy="12" r="2"/>
+      </svg>
+    </button>
   </div>
 </header>
 
@@ -515,6 +554,42 @@
   <div class="save-actions">
     <button class="save-btn save-btn-secondary" onclick="closeSavePreview()">關閉</button>
     <button class="save-btn save-btn-primary" id="saveActBtn" onclick="doSave()">儲存到相簿</button>
+  </div>
+</div>
+
+<!-- Action Menu Sheet -->
+<div class="menu-overlay" id="menuOverlay" onclick="handleMenuOverlayClick(event)">
+  <div class="menu-sheet">
+    <div class="modal-handle"></div>
+    <div class="menu-item accent" onclick="closeMenu(); showExampleConfirm()">
+      <div class="menu-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      載入範例（大谷翔平）
+    </div>
+    <div class="menu-item danger" onclick="closeMenu(); showClearConfirm()">
+      <div class="menu-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+        </svg>
+      </div>
+      清除全部資料
+    </div>
+    <div class="menu-item normal" onclick="closeMenu(); showHelp()">
+      <div class="menu-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      使用說明
+    </div>
   </div>
 </div>
 
@@ -824,6 +899,12 @@ document.getElementById('modalInput').addEventListener('keydown', e => {
 function showHelp() { document.getElementById('helpOverlay').classList.add('show'); }
 function closeHelp() { document.getElementById('helpOverlay').classList.remove('show'); }
 function handleHelpClick(e) { if (e.target === e.currentTarget) closeHelp(); }
+
+// ── Menu ──────────────────────────────────────────────────────────────────
+
+function showMenu() { document.getElementById('menuOverlay').classList.add('show'); }
+function closeMenu() { document.getElementById('menuOverlay').classList.remove('show'); }
+function handleMenuOverlayClick(e) { if (e.target === e.currentTarget) closeMenu(); }
 
 // ── Clear ─────────────────────────────────────────────────────────────────
 
