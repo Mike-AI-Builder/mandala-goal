@@ -404,7 +404,7 @@
     .theme-card.selected { border-color: var(--gold); background: #fffbeb; }
 
     .theme-preview {
-      width: 52px; height: 88px; border-radius: 8px;
+      width: 52px; height: 113px; border-radius: 8px;
       overflow: hidden; flex-shrink: 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
@@ -941,7 +941,7 @@ function confirmLoadExample() {
 
 // ── Wallpaper / Canvas ────────────────────────────────────────────────────
 
-const WW = 1080, WH = 1920;
+const WW = 1170, WH = 2532;
 
 const THEMES = [
   { id: 'sunny',   name: '晴日清新', desc: '純白簡約・繽紛活力' },
@@ -1202,40 +1202,73 @@ function renderWallpaper(themeId, W, H) {
 
   theme.bg(ctx, W, H);
 
-  const GS = Math.round(W * 0.87);
+  // ── Grid metrics（縮小到 80% 留出左右邊距，避免被 iOS 裁切）──
+  const GS = Math.round(W * 0.80);
   const GX = Math.round((W - GS) / 2);
-  const GY = Math.round(H * 0.185);
+  const GY = Math.round(H * 0.30);
 
-  // Title
+  // ── 巧思 1：九宮格背後的柔和光暈（呼應主題色）──
   ctx.save();
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = theme.titleColor;
-  ctx.font = `800 ${Math.round(W*0.062)}px system-ui,-apple-system,"PingFang TC",sans-serif`;
-  ctx.fillText('目標九宮格', W/2, Math.round(H*0.072));
-
-  if (data.mainGoal) {
-    ctx.fillStyle = theme.accentColor || theme.titleColor;
-    ctx.globalAlpha = 0.8;
-    ctx.font = `600 ${Math.round(W*0.036)}px system-ui,-apple-system,"PingFang TC",sans-serif`;
-    ctx.fillText(data.mainGoal, W/2, Math.round(H*0.122));
-    ctx.globalAlpha = 1;
-  }
-
-  // Divider
-  ctx.strokeStyle = theme.titleColor; ctx.globalAlpha = 0.15; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(GX, Math.round(H*0.152)); ctx.lineTo(GX+GS, Math.round(H*0.152)); ctx.stroke();
-  ctx.globalAlpha = 1;
+  const haloX = W / 2;
+  const haloY = GY + GS / 2;
+  const halo = ctx.createRadialGradient(haloX, haloY, 0, haloX, haloY, GS * 0.72);
+  halo.addColorStop(0, (theme.accentColor || '#888') + '22');
+  halo.addColorStop(0.55, (theme.accentColor || '#888') + '0c');
+  halo.addColorStop(1, 'transparent');
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 0, W, H);
   ctx.restore();
 
+  // ── 巧思 2：標題上方的裝飾線 + 中心點 ──
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const ornY = Math.round(H * 0.155);
+  ctx.strokeStyle = theme.accentColor || theme.titleColor;
+  ctx.globalAlpha = 0.45;
+  ctx.lineWidth = Math.max(1, Math.round(W * 0.0025));
+  const aw = Math.round(W * 0.055);
+  const ag = Math.round(W * 0.022);
+  ctx.beginPath();
+  ctx.moveTo(W/2 - aw - ag, ornY); ctx.lineTo(W/2 - ag, ornY);
+  ctx.moveTo(W/2 + ag, ornY);      ctx.lineTo(W/2 + aw + ag, ornY);
+  ctx.stroke();
+  ctx.fillStyle = theme.accentColor || theme.titleColor;
+  ctx.beginPath();
+  ctx.arc(W/2, ornY, Math.round(W * 0.007), 0, Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // ── 標題（往下移，字體更穩重）──
+  ctx.fillStyle = theme.titleColor;
+  ctx.font = `800 ${Math.round(W*0.066)}px system-ui,-apple-system,"PingFang TC",sans-serif`;
+  ctx.fillText('目標九宮格', W/2, Math.round(H*0.195));
+
+  // ── 主目標（加引號裝飾，視覺更精緻）──
+  if (data.mainGoal) {
+    ctx.fillStyle = theme.accentColor || theme.titleColor;
+    ctx.globalAlpha = 0.88;
+    ctx.font = `500 ${Math.round(W*0.04)}px system-ui,-apple-system,"PingFang TC",sans-serif`;
+    ctx.fillText(`「${data.mainGoal}」`, W/2, Math.round(H*0.245));
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+
+  // ── 九宮格 ──
   drawMandalaGrid(ctx, GX, GY, GS, theme);
   if (theme.postDraw) theme.postDraw(ctx, W, H, GX, GY, GS);
 
-  // Footer
+  // ── 巧思 3：底部三個小圓點（極簡裝飾，不再放任何文字）──
   ctx.save();
-  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-  ctx.fillStyle = theme.titleColor; ctx.globalAlpha = 0.3;
-  ctx.font = `500 ${Math.round(W*0.026)}px system-ui,-apple-system,"PingFang TC",sans-serif`;
-  ctx.fillText('曼陀羅思考法　1主目標 · 8子目標 · 64行動', W/2, GY + GS + Math.round(H*0.022));
+  ctx.fillStyle = theme.accentColor || theme.titleColor;
+  ctx.globalAlpha = 0.32;
+  const dotR = Math.round(W * 0.0055);
+  const dotGap = Math.round(W * 0.028);
+  const dotY = GY + GS + Math.round(H * 0.04);
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.arc(W/2 + i*dotGap, dotY, dotR, 0, Math.PI*2);
+    ctx.fill();
+  }
   ctx.globalAlpha = 1;
   ctx.restore();
 
@@ -1261,7 +1294,7 @@ function showExport() {
 
     const preview = document.createElement('div');
     preview.className = 'theme-preview';
-    const thumb = renderWallpaper(t.id, 260, 440);
+    const thumb = renderWallpaper(t.id, 260, 563);
     thumb.style.cssText = 'width:100%;height:100%;display:block;';
     preview.appendChild(thumb);
 
