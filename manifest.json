@@ -4,8 +4,8 @@
   "description": "曼陀羅思考法九宮格目標管理工具",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f0f4f8",
-  "theme_color": "#f0f4f8",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "portrait-primary",
   "lang": "zh-TW",
   "icons": [
