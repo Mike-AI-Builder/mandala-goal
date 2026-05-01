@@ -1,9 +1,9 @@
-const CACHE = 'mandala-v7';
+const CACHE = 'mandala-v8';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
-  self.skipWaiting();
+  // 不再自動 skipWaiting，等使用者點擊「立即重新整理」再切換
 });
 
 self.addEventListener('activate', e => {
@@ -11,6 +11,10 @@ self.addEventListener('activate', e => {
     Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
   ));
   self.clients.claim();
+});
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {
