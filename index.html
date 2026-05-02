@@ -1202,16 +1202,18 @@ function renderWallpaper(themeId, W, H) {
 
   theme.bg(ctx, W, H);
 
-  // ── Grid metrics（縮小到 80% 留出左右邊距，避免被 iOS 裁切）──
-  const GS = Math.round(W * 0.80);
+  // ── 版面策略 ──
+  // 上方 0-30% 留空，避開 iOS 鎖定畫面的日期 + 時鐘
+  // 中段 30-66% 放九宮格（主視覺）
+  // 下段 70-86% 放主目標 hero 文字（被時鐘擋不到的位置）
+
+  const GS = Math.round(W * 0.78);
   const GX = Math.round((W - GS) / 2);
   const GY = Math.round(H * 0.30);
 
-  // ── 巧思 1：九宮格背後的柔和光暈（呼應主題色）──
+  // ── 九宮格背後的柔和光暈 ──
   ctx.save();
-  const haloX = W / 2;
-  const haloY = GY + GS / 2;
-  const halo = ctx.createRadialGradient(haloX, haloY, 0, haloX, haloY, GS * 0.72);
+  const halo = ctx.createRadialGradient(W/2, GY + GS/2, 0, W/2, GY + GS/2, GS * 0.72);
   halo.addColorStop(0, (theme.accentColor || '#888') + '22');
   halo.addColorStop(0.55, (theme.accentColor || '#888') + '0c');
   halo.addColorStop(1, 'transparent');
@@ -1219,57 +1221,56 @@ function renderWallpaper(themeId, W, H) {
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
 
-  // ── 巧思 2：標題上方的裝飾線 + 中心點 ──
-  ctx.save();
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const ornY = Math.round(H * 0.155);
-  ctx.strokeStyle = theme.accentColor || theme.titleColor;
-  ctx.globalAlpha = 0.45;
-  ctx.lineWidth = Math.max(1, Math.round(W * 0.0025));
-  const aw = Math.round(W * 0.055);
-  const ag = Math.round(W * 0.022);
-  ctx.beginPath();
-  ctx.moveTo(W/2 - aw - ag, ornY); ctx.lineTo(W/2 - ag, ornY);
-  ctx.moveTo(W/2 + ag, ornY);      ctx.lineTo(W/2 + aw + ag, ornY);
-  ctx.stroke();
-  ctx.fillStyle = theme.accentColor || theme.titleColor;
-  ctx.beginPath();
-  ctx.arc(W/2, ornY, Math.round(W * 0.007), 0, Math.PI*2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // ── 標題（往下移，字體更穩重）──
-  ctx.fillStyle = theme.titleColor;
-  ctx.font = `800 ${Math.round(W*0.066)}px system-ui,-apple-system,"PingFang TC",sans-serif`;
-  ctx.fillText('目標九宮格', W/2, Math.round(H*0.195));
-
-  // ── 主目標（加引號裝飾，視覺更精緻）──
-  if (data.mainGoal) {
-    ctx.fillStyle = theme.accentColor || theme.titleColor;
-    ctx.globalAlpha = 0.88;
-    ctx.font = `500 ${Math.round(W*0.04)}px system-ui,-apple-system,"PingFang TC",sans-serif`;
-    ctx.fillText(`「${data.mainGoal}」`, W/2, Math.round(H*0.245));
-    ctx.globalAlpha = 1;
-  }
-  ctx.restore();
-
-  // ── 九宮格 ──
+  // ── 九宮格本體 ──
   drawMandalaGrid(ctx, GX, GY, GS, theme);
   if (theme.postDraw) theme.postDraw(ctx, W, H, GX, GY, GS);
 
-  // ── 巧思 3：底部三個小圓點（極簡裝飾，不再放任何文字）──
+  // ── 下方文字區：小標 + 主目標 hero ──
   ctx.save();
-  ctx.fillStyle = theme.accentColor || theme.titleColor;
-  ctx.globalAlpha = 0.32;
-  const dotR = Math.round(W * 0.0055);
-  const dotGap = Math.round(W * 0.028);
-  const dotY = GY + GS + Math.round(H * 0.04);
-  for (let i = -1; i <= 1; i++) {
-    ctx.beginPath();
-    ctx.arc(W/2 + i*dotGap, dotY, dotR, 0, Math.PI*2);
-    ctx.fill();
-  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  // 細裝飾線（上下兩條極細的水平線夾住文字）
+  const labelY = GY + GS + Math.round(H * 0.05);
+  ctx.strokeStyle = theme.accentColor || theme.titleColor;
+  ctx.globalAlpha = 0.35;
+  ctx.lineWidth = Math.max(1, Math.round(W * 0.002));
+  const lw = Math.round(W * 0.06);
+  ctx.beginPath();
+  ctx.moveTo(W/2 - lw, labelY); ctx.lineTo(W/2 + lw, labelY);
+  ctx.stroke();
   ctx.globalAlpha = 1;
+
+  // 小標 "目標九宮格"（低調，作為標籤）
+  ctx.fillStyle = theme.titleColor;
+  ctx.globalAlpha = 0.55;
+  ctx.font = `600 ${Math.round(W*0.026)}px system-ui,-apple-system,"PingFang TC",sans-serif`;
+  ctx.letterSpacing = '4px';
+  ctx.fillText('· 目 標 九 宮 格 ·', W/2, labelY + Math.round(H * 0.028));
+  ctx.globalAlpha = 1;
+
+  // 主目標 hero 文字（最大、最有份量、視覺中心）
+  if (data.mainGoal) {
+    const heroY = labelY + Math.round(H * 0.085);
+    ctx.fillStyle = theme.titleColor;
+    let fs = Math.round(W * 0.072);
+    const font = s => `800 ${s}px system-ui,-apple-system,"PingFang TC",sans-serif`;
+    ctx.font = font(fs);
+    while (fs > Math.round(W*0.045) && ctx.measureText(data.mainGoal).width > W * 0.78) {
+      fs -= 4; ctx.font = font(fs);
+    }
+    ctx.fillText(data.mainGoal, W/2, heroY);
+
+    // 主目標下方再來一條更細的線收尾
+    const endY = heroY + Math.round(H * 0.045);
+    ctx.strokeStyle = theme.accentColor || theme.titleColor;
+    ctx.globalAlpha = 0.25;
+    ctx.lineWidth = Math.max(1, Math.round(W * 0.0015));
+    const ew = Math.round(W * 0.03);
+    ctx.beginPath();
+    ctx.moveTo(W/2 - ew, endY); ctx.lineTo(W/2 + ew, endY);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   ctx.restore();
 
   return canvas;
