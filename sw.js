@@ -1,4 +1,4 @@
-const CACHE = 'mandala-v14';
+const CACHE = 'mandala-v15';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
